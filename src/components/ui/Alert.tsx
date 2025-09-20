@@ -7,10 +7,10 @@ interface AlertProps {
 }
 
 const alertStyles = {
-  success: "bg-green-50 text-green-800 border-green-200",
-  error: "bg-red-50 text-red-800 border-red-200",
-  warning: "bg-yellow-50 text-yellow-800 border-yellow-200",
-  info: "bg-blue-50 text-blue-800 border-blue-200",
+  success: "bg-success-50 text-success-800 border-success-200",
+  error: "bg-error-50 text-error-800 border-error-200",
+  warning: "bg-warning-50 text-warning-800 border-warning-200",
+  info: "bg-info-50 text-info-800 border-info-200",
 };
 
 export const Alert = ({ type, message, className }: AlertProps) => {

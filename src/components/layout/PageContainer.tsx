@@ -8,6 +8,6 @@ export const PageContainer = ({
   className = "",
 }: PageContainerProps) => {
   return (
-    <div className={`min-h-screen bg-gray-50 ${className}`}>{children}</div>
+    <div className={`min-h-screen bg-background ${className}`}>{children}</div>
   );
 };

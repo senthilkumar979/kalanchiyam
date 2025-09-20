@@ -1,36 +1,31 @@
 "use client";
 
-import { useState } from "react";
-import { Document } from "@/types/database";
 import { DocumentItem } from "@/components/documents/DocumentItem";
-import {
-  getDownloadUrl,
-  deleteDocument,
-  updateDocumentCategory,
-} from "../actions";
+import { Document } from "@/types/database";
+import { useState } from "react";
+import { deleteDocument, getDownloadUrl } from "../actions";
 
 interface DocumentListProps {
   documents: Document[];
   onDocumentDeleted?: () => void;
 }
 
-export function DocumentList({
+export const DocumentList: React.FC<DocumentListProps> = ({
   documents,
   onDocumentDeleted,
-}: DocumentListProps) {
+}) => {
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
-  const handleDownload = async (document: Document) => {
-    setDownloadingIds((prev) => new Set(prev).add(document.id));
+  const handleDownload = async (doc: Document) => {
+    setDownloadingIds((prev) => new Set(prev).add(doc.id));
 
     try {
-      const downloadUrl = await getDownloadUrl(document.id);
+      const downloadUrl = await getDownloadUrl(doc.id);
       if (downloadUrl) {
-        // Create a temporary link and trigger download
         const link = document.createElement("a");
         link.href = downloadUrl;
-        link.download = document.file_name;
+        link.download = doc.file_name;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -43,7 +38,7 @@ export function DocumentList({
     } finally {
       setDownloadingIds((prev) => {
         const newSet = new Set(prev);
-        newSet.delete(document.id);
+        newSet.delete(doc.id);
         return newSet;
       });
     }
@@ -75,20 +70,6 @@ export function DocumentList({
     }
   };
 
-  const handleUpdateCategory = async (documentId: string, category: string) => {
-    try {
-      const result = await updateDocumentCategory(documentId, category);
-      if (result.success) {
-        onDocumentDeleted?.(); // Refresh the list
-      } else {
-        alert(result.error || "Update failed");
-      }
-    } catch (error) {
-      console.error("Update error:", error);
-      alert("Update failed");
-    }
-  };
-
   if (documents.length === 0) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-md text-center">
@@ -103,14 +84,13 @@ export function DocumentList({
         <h2 className="text-xl font-semibold">Your Documents</h2>
       </div>
 
-      <div className="divide-y divide-gray-200">
+      <div className="mb-4 ml-2 mr-2 mt-2 flex flex-row flex-wrap gap-2 items-center justify-center">
         {documents.map((document) => (
           <DocumentItem
             key={document.id}
             document={document}
             onDownload={handleDownload}
             onDelete={handleDelete}
-            onUpdateCategory={handleUpdateCategory}
             isDownloading={downloadingIds.has(document.id)}
             isDeleting={deletingIds.has(document.id)}
           />
@@ -118,4 +98,4 @@ export function DocumentList({
       </div>
     </div>
   );
-}
+};

@@ -1,10 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { createClient as createAdminClient } from "@/lib/supabase/admin";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { Document } from "@/types/database";
+import { revalidatePath } from "next/cache";
 
 export interface UploadDocumentFormData {
   file: File;
@@ -33,6 +31,7 @@ export async function uploadDocument(
 
     const file = formData.get("file") as File;
     const category = formData.get("category") as string;
+    const customName = formData.get("customName") as string;
 
     if (!file) {
       return { success: false, error: "No file provided" };
@@ -71,9 +70,14 @@ export async function uploadDocument(
       return { success: false, error: "User email not found" };
     }
 
+    // Use custom name if provided, otherwise use original file name
+    const finalFileName = customName
+      ? `${customName}.${file.name.split(".").pop()}`
+      : file.name;
+
     const insertData = {
       user_email_id: userData.user.email,
-      file_name: file.name,
+      file_name: finalFileName,
       storage_path: uploadData.path,
       file_size: file.size,
       mime_type: file.type,
@@ -242,14 +246,87 @@ export async function updateDocumentCategory(
       return { success: false, error: "Authentication required" };
     }
 
+    console.log("updateDocumentCategory called with:", {
+      documentId,
+      category,
+    });
+
     const { error } = await supabase
       .from("documents")
-      .update({ category: category || null })
-      .eq("id", documentId);
+      .update({ category })
+      .eq("id", documentId)
+      .eq("user_email_id", user.email);
 
     if (error) {
       return { success: false, error: `Update error: ${error.message}` };
     }
+
+    revalidatePath("/documents");
+    return { success: true };
+  } catch (error) {
+    console.error("Update error:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function updateDocumentDetails(
+  documentId: string,
+  fileName: string,
+  category: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    console.log("updateDocumentDetails called with:", {
+      documentId,
+      fileName,
+      category,
+    });
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    // First verify the document exists and belongs to the user
+    const { data: existingDoc, error: fetchError } = await supabase
+      .from("documents")
+      .select("*")
+      .eq("id", documentId)
+      .single();
+
+    console.log("existingDoc", existingDoc);
+
+    if (fetchError || !existingDoc) {
+      console.error("Document not found or access denied:", fetchError);
+      return { success: false, error: "Document not found or access denied" };
+    }
+
+    console.log("Document found, proceeding with update...");
+
+    console.log("updating document with:", {
+      documentId,
+      fileName,
+      category,
+    });
+
+    const { data, error } = await supabase
+      .from("documents")
+      .update({
+        file_name: fileName,
+        category,
+      })
+      .eq("id", documentId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Database update error:", error);
+      return { success: false, error: `Update error: ${error.message}` };
+    }
+
+    console.log("Database update successful", data);
 
     revalidatePath("/documents");
     return { success: true };

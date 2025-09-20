@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Account } from "@/types/database";
-import { Message } from "@/types/api";
 
 export const useAccounts = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [message, setMessage] = useState<Message | null>(null);
 
   const fetchAccounts = async () => {
     try {
@@ -18,13 +16,13 @@ export const useAccounts = () => {
 
       if (error) {
         console.error("Error fetching accounts:", error);
-        setMessage({ type: "error", text: "Failed to fetch accounts" });
+        throw new Error("Failed to fetch accounts");
       } else {
         setAccounts(data || []);
       }
     } catch (error) {
       console.error("Error fetching accounts:", error);
-      setMessage({ type: "error", text: "An unexpected error occurred" });
+      throw new Error("An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -40,31 +38,16 @@ export const useAccounts = () => {
 
       if (error) {
         if (error.code === "23505") {
-          setMessage({
-            type: "error",
-            text: "This email address is already in the system.",
-          });
+          throw new Error("This email address is already in the system.");
         } else {
-          setMessage({
-            type: "error",
-            text: error.message,
-          });
+          throw new Error(error.message);
         }
-        return false;
       } else {
-        setMessage({
-          type: "success",
-          text: "Account added successfully!",
-        });
         await fetchAccounts();
         return true;
       }
-    } catch {
-      setMessage({
-        type: "error",
-        text: "An unexpected error occurred",
-      });
-      return false;
+    } catch (error) {
+      throw error;
     }
   };
 
@@ -77,24 +60,12 @@ export const useAccounts = () => {
         .eq("email_id", id);
 
       if (error) {
-        setMessage({
-          type: "error",
-          text: error.message,
-        });
+        throw new Error(error.message);
       } else {
-        setMessage({
-          type: "success",
-          text: `Account ${
-            !currentStatus ? "activated" : "deactivated"
-          } successfully!`,
-        });
         await fetchAccounts();
       }
-    } catch {
-      setMessage({
-        type: "error",
-        text: "An unexpected error occurred",
-      });
+    } catch (error) {
+      throw error;
     }
   };
 
@@ -105,25 +76,18 @@ export const useAccounts = () => {
 
     try {
       const supabase = createClient();
-      const { error } = await supabase.from("accounts").delete().eq("email_id", id);
+      const { error } = await supabase
+        .from("accounts")
+        .delete()
+        .eq("email_id", id);
 
       if (error) {
-        setMessage({
-          type: "error",
-          text: error.message,
-        });
+        throw new Error(error.message);
       } else {
-        setMessage({
-          type: "success",
-          text: "Account deleted successfully!",
-        });
         await fetchAccounts();
       }
-    } catch {
-      setMessage({
-        type: "error",
-        text: "An unexpected error occurred",
-      });
+    } catch (error) {
+      throw error;
     }
   };
 
@@ -134,8 +98,6 @@ export const useAccounts = () => {
   return {
     accounts,
     isLoading,
-    message,
-    setMessage,
     addAccount,
     toggleAccountStatus,
     deleteAccount,

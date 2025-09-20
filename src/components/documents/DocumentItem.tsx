@@ -1,13 +1,22 @@
-import { useState } from "react";
-import { Document } from "@/types/database";
+import { FileTypeIcon } from "@/components/icons/FileTypeIcon";
 import { Button } from "@/components/ui/Button";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { Document } from "@/types/database";
+import {
+  Calendar,
+  Download,
+  HardDrive,
+  Pencil,
+  Tag,
+  Trash2,
+} from "lucide-react";
+import { useState } from "react";
+import { formatDate, formatFileType } from "../../lib/utils";
+import { EditDocumentModal } from "./EditDocumentModal";
 
 interface DocumentItemProps {
   document: Document;
   onDownload: (document: Document) => Promise<void>;
   onDelete: (documentId: string) => Promise<void>;
-  onUpdateCategory: (documentId: string, category: string) => Promise<void>;
   isDownloading?: boolean;
   isDeleting?: boolean;
 }
@@ -16,149 +25,128 @@ export const DocumentItem = ({
   document,
   onDownload,
   onDelete,
-  onUpdateCategory,
   isDownloading = false,
   isDeleting = false,
 }: DocumentItemProps) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editCategory, setEditCategory] = useState(document.category || "");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleSaveCategory = async () => {
-    await onUpdateCategory(document.id, editCategory);
-    setIsEditing(false);
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
   };
 
-  const handleCancelEdit = () => {
-    setEditCategory(document.category || "");
-    setIsEditing(false);
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
   };
 
   const formatFileSize = (bytes: number | null) => {
     if (!bytes) return "Unknown";
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i];
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return `${Math.round((bytes / Math.pow(1024, i)) * 100) / 100} ${sizes[i]}`;
   };
 
   return (
-    <div className="p-6 hover:bg-gray-50">
-      <div className="flex items-center justify-between">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-3">
+    <div className="group bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:border-gray-300 w-full max-w-xs">
+      <div className="p-2">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-3 flex-1 min-w-0">
+            {/* File Icon */}
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-              </div>
+              <FileTypeIcon
+                fileName={document.file_name}
+                className="w-4 h-4 text-white"
+              />
             </div>
 
+            {/* File Name */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
+              <h3 className="text-sm font-semibold text-gray-900 truncate">
                 {document.file_name}
-              </p>
-              <div className="flex items-center space-x-4 text-xs text-gray-500">
-                <span>{formatFileSize(document.file_size)}</span>
-                <span>{formatDate(document.uploaded_at)}</span>
-                {document.mime_type && (
-                  <span className="px-2 py-1 bg-gray-100 rounded-full">
-                    {document.mime_type}
-                  </span>
-                )}
-              </div>
+              </h3>
             </div>
           </div>
 
-          <div className="mt-2">
-            {isEditing ? (
-              <div className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={editCategory}
-                  onChange={(e) => setEditCategory(e.target.value)}
-                  placeholder="Category"
-                  className="text-sm px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-                <Button
-                  size="sm"
-                  onClick={handleSaveCategory}
-                  className="text-xs"
-                >
-                  Save
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={handleCancelEdit}
-                  className="text-xs"
-                >
-                  Cancel
-                </Button>
+          {/* Actions */}
+          <div className="flex items-center space-x-1 ml-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleOpenModal}
+              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 h-6 w-6"
+            >
+              <Pencil className="w-3 h-3" />
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onDownload(document)}
+              disabled={isDownloading}
+              isLoading={isDownloading}
+              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 h-6 w-6"
+            >
+              <Download className="w-3 h-3" />
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => onDelete(document.id)}
+              disabled={isDeleting}
+              isLoading={isDeleting}
+              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 h-6 w-6 text-white"
+            >
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Metadata */}
+        <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-1">
+              <HardDrive className="w-3 h-3" />
+              <span>{formatFileSize(document.file_size)}</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <Calendar className="w-3 h-3" />
+              <span>{formatDate(document.uploaded_at)}</span>
+            </div>
+          </div>
+          {document.mime_type && (
+            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+              {formatFileType(document.mime_type)}
+            </span>
+          )}
+        </div>
+
+        {/* Tags Section */}
+        <div className="border-t border-gray-100 pt-3">
+          <div className="flex items-center space-x-2">
+            <Tag className="w-3 h-3 text-gray-400" />
+            {document.category ? (
+              <div className="flex flex-wrap gap-1">
+                {document.category.split(",").map((tag, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
+                  >
+                    {tag.trim()}
+                  </span>
+                ))}
               </div>
             ) : (
-              <div className="flex items-center space-x-2">
-                {document.category ? (
-                  <StatusBadge status="active" className="text-xs">
-                    {document.category}
-                  </StatusBadge>
-                ) : (
-                  <span className="text-xs text-gray-400">No category</span>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                  className="text-xs text-blue-600 hover:text-blue-800"
-                >
-                  Edit
-                </Button>
-              </div>
+              <span className="text-xs text-gray-400 italic">No tags</span>
             )}
           </div>
         </div>
-
-        <div className="flex items-center space-x-2 ml-4">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => onDownload(document)}
-            disabled={isDownloading}
-            isLoading={isDownloading}
-          >
-            Download
-          </Button>
-
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={() => onDelete(document.id)}
-            disabled={isDeleting}
-            isLoading={isDeleting}
-          >
-            Delete
-          </Button>
-        </div>
       </div>
+
+      {/* Edit Modal */}
+      <EditDocumentModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        document={document}
+      />
     </div>
   );
 };

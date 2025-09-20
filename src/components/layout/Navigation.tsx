@@ -30,14 +30,14 @@ export const Navigation = ({
           <div className="flex items-center">
             <Link
               href="/dashboard"
-              className="text-xl font-semibold text-gray-900 hover:text-gray-700"
+              className="text-xl font-semibold text-secondary-900 hover:text-secondary-700"
             >
               {title}
             </Link>
           </div>
           <div className="flex items-center space-x-4">
             {user && (
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-secondary-700">
                 Welcome, {user.name || "User"}
               </span>
             )}

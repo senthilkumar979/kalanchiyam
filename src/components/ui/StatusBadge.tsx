@@ -6,11 +6,11 @@ interface StatusBadgeProps {
 }
 
 const statusStyles = {
-  active: "bg-green-100 text-green-800",
-  inactive: "bg-red-100 text-red-800",
-  pending: "bg-yellow-100 text-yellow-800",
-  accepted: "bg-green-100 text-green-800",
-  expired: "bg-gray-100 text-gray-800",
+  active: "bg-success-100 text-success-800",
+  inactive: "bg-error-100 text-error-800",
+  pending: "bg-warning-100 text-warning-800",
+  accepted: "bg-success-100 text-success-800",
+  expired: "bg-secondary-100 text-secondary-800",
 };
 
 const statusLabels = {

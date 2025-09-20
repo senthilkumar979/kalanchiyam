@@ -18,9 +18,9 @@ export const LoadingSpinner = ({
   return (
     <div className={`text-center ${className}`}>
       <div
-        className={`animate-spin rounded-full border-b-2 border-indigo-600 mx-auto ${spinnerSizes[size]}`}
+        className={`animate-spin rounded-full border-b-2 border-primary-600 mx-auto ${spinnerSizes[size]}`}
       />
-      {text && <p className="mt-4 text-gray-600">{text}</p>}
+      {text && <p className="mt-4 text-secondary-600">{text}</p>}
     </div>
   );
 };
