@@ -1,5 +1,6 @@
 export const SVGIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg
+    className={className}
     height="32"
     width="32"
     version="1.1"

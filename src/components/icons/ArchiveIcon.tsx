@@ -4,6 +4,7 @@ export const ArchiveIcon = ({
   className?: string;
 }) => (
   <svg
+    className={className}
     height="32"
     width="32"
     version="1.1"

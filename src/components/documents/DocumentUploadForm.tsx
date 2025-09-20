@@ -34,8 +34,9 @@ export const DocumentUploadForm = ({
       setFiles([]);
       setUploadError(null);
       setUploadSuccess(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      const currentRef = fileInputRef.current;
+      if (currentRef) {
+        currentRef.value = "";
       }
       setIsUploading(false);
     };

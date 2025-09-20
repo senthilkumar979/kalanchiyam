@@ -54,7 +54,15 @@ export const getColor = (
   colorType: keyof ThemeColors,
   shade: ColorShade = "500"
 ) => {
-  return theme.colors[colorType][shade];
+  const colorObj = theme.colors[colorType];
+  if (typeof colorObj === "string") {
+    return colorObj;
+  }
+  // Type assertion to handle missing shades
+  return (
+    (colorObj as Record<string, string>)[shade] ||
+    (colorObj as Record<string, string>)[500]
+  );
 };
 
 // Helper function to get component color

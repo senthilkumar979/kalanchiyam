@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export interface Toast {
@@ -20,6 +20,11 @@ const ToastComponent = ({ toast, onRemove }: ToastProps) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
 
+  const handleRemove = useCallback(() => {
+    setIsLeaving(true);
+    setTimeout(() => onRemove(toast.id), 300);
+  }, [onRemove, toast.id]);
+
   useEffect(() => {
     // Trigger entrance animation
     const timer = setTimeout(() => setIsVisible(true), 10);
@@ -33,12 +38,7 @@ const ToastComponent = ({ toast, onRemove }: ToastProps) => {
       }, toast.duration);
       return () => clearTimeout(timer);
     }
-  }, [toast.duration]);
-
-  const handleRemove = () => {
-    setIsLeaving(true);
-    setTimeout(() => onRemove(toast.id), 300);
-  };
+  }, [toast.duration, handleRemove]);
 
   const getIcon = () => {
     switch (toast.type) {

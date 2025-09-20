@@ -1,5 +1,6 @@
 export const PNGIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg
+    className={className}
     width="32"
     height="32"
     version="1.1"
