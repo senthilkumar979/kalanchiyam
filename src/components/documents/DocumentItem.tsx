@@ -1,43 +1,14 @@
 import { FileTypeIcon } from "@/components/icons/FileTypeIcon";
-import { Button } from "@/components/ui/Button";
 import { Document } from "@/types/database";
-import {
-  Calendar,
-  Download,
-  HardDrive,
-  Pencil,
-  Tag,
-  Trash2,
-} from "lucide-react";
-import { useState } from "react";
+import { Calendar, HardDrive, Tag } from "lucide-react";
+import { DownloadActions } from "../../app/documents/components/DownloadActions";
 import { formatDate, formatFileType } from "../../lib/utils";
-import { EditDocumentModal } from "./EditDocumentModal";
 
 interface DocumentItemProps {
   document: Document;
-  onDownload: (document: Document) => Promise<void>;
-  onDelete: (documentId: string) => Promise<void>;
-  isDownloading?: boolean;
-  isDeleting?: boolean;
 }
 
-export const DocumentItem = ({
-  document,
-  onDownload,
-  onDelete,
-  isDownloading = false,
-  isDeleting = false,
-}: DocumentItemProps) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const handleOpenModal = () => {
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
-
+export const DocumentItem = ({ document }: DocumentItemProps) => {
   const formatFileSize = (bytes: number | null) => {
     if (!bytes) return "Unknown";
     const sizes = ["Bytes", "KB", "MB", "GB"];
@@ -46,11 +17,11 @@ export const DocumentItem = ({
   };
 
   return (
-    <div className="group bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:border-gray-300 w-full max-w-xs">
+    <div className="group bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:border-gray-300 w-full max-w-sm">
       <div className="p-2">
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-3 flex-1 min-w-0">
+          <div className="flex items-center space-x-2 flex-1 min-w-0">
             {/* File Icon */}
             <div className="flex-shrink-0">
               <FileTypeIcon
@@ -68,36 +39,7 @@ export const DocumentItem = ({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center space-x-1 ml-2">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleOpenModal}
-              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 h-6 w-6"
-            >
-              <Pencil className="w-3 h-3" />
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onDownload(document)}
-              disabled={isDownloading}
-              isLoading={isDownloading}
-              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 h-6 w-6"
-            >
-              <Download className="w-3 h-3" />
-            </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => onDelete(document.id)}
-              disabled={isDeleting}
-              isLoading={isDeleting}
-              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 h-6 w-6 text-white"
-            >
-              <Trash2 className="w-3 h-3" />
-            </Button>
-          </div>
+          <DownloadActions doc={document} />
         </div>
 
         {/* Metadata */}
@@ -140,13 +82,6 @@ export const DocumentItem = ({
           </div>
         </div>
       </div>
-
-      {/* Edit Modal */}
-      <EditDocumentModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        document={document}
-      />
     </div>
   );
 };

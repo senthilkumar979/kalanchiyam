@@ -24,6 +24,8 @@ export const EditDocumentModal = ({
   const [editTags, setEditTags] = useState(
     document.category ? document.category.split(", ") : []
   );
+  console.log(editFileName);
+  console.log(editTags);
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
@@ -36,7 +38,6 @@ export const EditDocumentModal = ({
         categoryAsString
       );
       if (result.success) {
-        onSuccess();
         onClose();
       } else {
         alert(result.error || "Update failed");
@@ -79,7 +80,7 @@ export const EditDocumentModal = ({
             Tags
           </label>
           <TagsInput
-            value={editTags.join(", ")}
+            value={editTags?.join(", ")}
             onChange={(tags) =>
               setEditTags(tags.split(", ").map((tag) => tag.trim()))
             }

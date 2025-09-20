@@ -1,10 +1,7 @@
-import { getDocuments } from "./actions";
+import { ChooseView } from "./components/ChooseView";
 import { DocumentUpload } from "./components/DocumentUpload";
-import { DocumentList } from "./components/DocumentList";
 
 export default async function DocumentsPage() {
-  const documents = await getDocuments();
-
   return (
     <div className="p-6">
       <div className="mb-8">
@@ -21,7 +18,7 @@ export default async function DocumentsPage() {
         </div>
       </div>
 
-      <DocumentList documents={documents} />
+      <ChooseView />
     </div>
   );
 }

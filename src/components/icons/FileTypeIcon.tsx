@@ -20,6 +20,7 @@ export const FileTypeIcon = ({
   fileName,
   className = "w-5 h-5",
 }: FileTypeIconProps) => {
+  console.log(fileName);
   const extension = fileName?.split(".")?.pop()?.toLowerCase();
 
   const iconMap: Record<string, React.ElementType> = {
