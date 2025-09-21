@@ -1,15 +1,16 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard,
+  ChevronRight,
   FileText,
+  LayoutDashboard,
+  Settings,
   Users,
   X,
-  ChevronRight,
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -43,6 +44,12 @@ const menuItems: MenuItem[] = [
     href: "/admin/accounts",
     icon: <Users className="w-5 h-5" />,
     description: "User management",
+  },
+  {
+    name: "Setup",
+    href: "/admin/setup",
+    icon: <Settings className="w-5 h-5" />,
+    description: "Admin Settings",
   },
 ];
 

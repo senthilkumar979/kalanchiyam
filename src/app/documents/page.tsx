@@ -1,5 +1,6 @@
 import { ChooseView } from "./components/ChooseView";
 import { DocumentUpload } from "./components/DocumentUpload";
+import { PredefinedDocs } from "./components/PredefinedDocs";
 
 export default async function DocumentsPage() {
   return (
@@ -14,7 +15,10 @@ export default async function DocumentsPage() {
               Upload, organize, and manage your personal documents securely.
             </p>
           </div>
-          <DocumentUpload />
+          <div className="flex items-center gap-4">
+            <PredefinedDocs />
+            <DocumentUpload />
+          </div>
         </div>
       </div>
 

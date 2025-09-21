@@ -11,6 +11,7 @@ interface DrawerProps {
   children: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
   showCloseButton?: boolean;
+  className?: string;
 }
 
 export const Drawer = ({
@@ -19,6 +20,7 @@ export const Drawer = ({
   title,
   children,
   size = "md",
+  className,
   showCloseButton = true,
 }: DrawerProps) => {
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -117,7 +119,8 @@ export const Drawer = ({
           <div
             className={cn(
               "flex-1 overflow-y-auto px-6 py-4 transition-all duration-[1500ms] ease-in-out",
-              isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+              isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
+              className ?? ""
             )}
             style={{ transitionDelay: isOpen ? "600ms" : "0ms" }}
           >

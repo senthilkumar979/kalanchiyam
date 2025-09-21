@@ -3,7 +3,7 @@
 -- Create accounts table for user management
 CREATE TABLE IF NOT EXISTS accounts (
   email_id TEXT PRIMARY KEY,
-  full_name TEXT,
+  name TEXT,
   avatar_url TEXT,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -46,8 +46,8 @@ CREATE POLICY "Users can create invites" ON invites
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.accounts (email_id, full_name)
-  VALUES (NEW.email, NEW.raw_user_meta_data->>'full_name');
+  INSERT INTO public.accounts (email_id, name)
+  VALUES (NEW.email, NEW.raw_user_meta_data->>'name');
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

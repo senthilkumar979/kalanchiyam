@@ -62,7 +62,7 @@ export const AuthenticatedLayout = ({ children }: AuthenticatedLayoutProps) => {
             <div className="flex items-center space-x-4">
               {account && (
                 <span className="text-sm text-secondary-700">
-                  Welcome, {account.full_name || "User"}
+                  Welcome, {account.name || "User"}
                 </span>
               )}
               {handleSignOut && (

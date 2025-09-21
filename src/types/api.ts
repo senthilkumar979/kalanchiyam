@@ -34,7 +34,7 @@ export interface AccountWithActions extends Account {
 // Dashboard Types
 export interface DashboardAccount {
   email_id: string;
-  full_name: string | null;
+  name: string | null;
   avatar_url: string | null;
 }
 

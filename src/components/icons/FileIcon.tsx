@@ -1,40 +1,41 @@
-export const FileIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    width="32"
-    height="32"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2Z"
-      fill="#9CA3AF"
-      stroke="#6B7280"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M14 2V8H20"
-      stroke="#6B7280"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M16 13H8"
-      stroke="#6B7280"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M16 17H8"
-      stroke="#6B7280"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+import { BankPassbookIcon } from "./BankPassbook";
+import { DrivingLicenseIcon } from "./DrivingLicenseIcon";
+import { NationalIDIcon } from "./NationalIDIcon";
+import { OtherFileIcon } from "./OtherFileIcon";
+import { PassportIcon } from "./PassportIcon";
+import { VoterIDIcon } from "./VoterIDIcon";
+
+export const PredefinedDocIcon: React.FC<{ fileName: string }> = ({
+  fileName,
+}) => {
+  switch (fileName) {
+    case "Passport":
+      return <PassportIcon />;
+    case "National ID":
+      return <NationalIDIcon />;
+    case "Voter ID":
+      return <VoterIDIcon />;
+    case "Driving License":
+      return <DrivingLicenseIcon />;
+    case "Bank Passbook":
+      return <BankPassbookIcon />;
+    // case "Ration Card":
+    //   return <RationCardIcon />;
+    // case "PAN Card":
+    //   return <PANCardIcon />;
+    // case "Birth Certificate":
+    //   return <BirthCertificateIcon />;
+    // case "Marriage Certificate":
+    //   return <MarriageCertificateIcon />;
+    // case "X Marksheet":
+    //   return <XMarksheetIcon />;
+    // case "XII Marksheet":
+    //   return <XIIMarksheetIcon />;
+    // case "College Degree":
+    //   return <CollegeDegreeIcon />;
+    // case "College Marksheet":
+    //   return <CollegeMarksheetIcon />;
+    default:
+      return <OtherFileIcon />;
+  }
+};

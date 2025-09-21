@@ -27,7 +27,7 @@ export interface Database {
       accounts: {
         Row: {
           email_id: string;
-          full_name: string | null;
+          name: string | null;
           avatar_url: string | null;
           is_active: boolean;
           created_at: string;
@@ -35,7 +35,7 @@ export interface Database {
         };
         Insert: {
           email_id: string;
-          full_name?: string | null;
+          name?: string | null;
           avatar_url?: string | null;
           is_active?: boolean;
           created_at?: string;
@@ -43,7 +43,7 @@ export interface Database {
         };
         Update: {
           email_id?: string;
-          full_name?: string | null;
+          name?: string | null;
           avatar_url?: string | null;
           is_active?: boolean;
           created_at?: string;

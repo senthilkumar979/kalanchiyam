@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Account } from "@/types/database";
+import { EditAccountFormData } from "@/types/forms";
+import { useEffect, useState } from "react";
 
 export const useAccounts = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -69,6 +70,28 @@ export const useAccounts = () => {
     }
   };
 
+  const updateAccount = async (data: EditAccountFormData) => {
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("accounts")
+        .update({
+          name: data.name,
+          avatar_url: data.avatar_url || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("email_id", data.email_id);
+
+      if (error) {
+        throw new Error(error.message);
+      } else {
+        await fetchAccounts();
+      }
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const deleteAccount = async (id: string) => {
     if (!confirm("Are you sure you want to delete this account?")) {
       return;
@@ -99,6 +122,7 @@ export const useAccounts = () => {
     accounts,
     isLoading,
     addAccount,
+    updateAccount,
     toggleAccountStatus,
     deleteAccount,
     refetch: fetchAccounts,

@@ -14,7 +14,7 @@ Steps for Cursor:
 
 Supabase SQL: Write and run SQL commands to create a profiles table to store user metadata linked to auth.users.
 
-The table should have id, full_name, and avatar_url fields.
+The table should have id, name, and avatar_url fields.
 
 Enable Row Level Security (RLS) on this table.
 

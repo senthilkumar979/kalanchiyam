@@ -1,21 +1,28 @@
 "use client";
 
 import { AccountForm } from "@/components/forms/AccountForm";
+import { EditAccountModal } from "@/components/modals/EditAccountModal";
 import { useToastContext } from "@/components/providers/ToastProvider";
 import { AccountsTable } from "@/components/tables/AccountsTable";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAccounts } from "@/hooks/useAccounts";
+import { Account } from "@/types/database";
+import { EditAccountFormData } from "@/types/forms";
+import { useState } from "react";
 
 export default function AccountsPage() {
   const {
     accounts,
     isLoading,
     addAccount,
+    updateAccount,
     toggleAccountStatus,
     deleteAccount,
   } = useAccounts();
 
   const { success, error: showError } = useToastContext();
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
@@ -58,6 +65,30 @@ export default function AccountsPage() {
     }
   };
 
+  const handleEditAccount = (account: Account) => {
+    setEditingAccount(account);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateAccount = async (data: EditAccountFormData) => {
+    try {
+      await updateAccount(data);
+      success("Account Updated", "Account updated successfully!");
+      setIsEditModalOpen(false);
+      setEditingAccount(null);
+    } catch (error) {
+      showError(
+        "Update Failed",
+        error instanceof Error ? error.message : "Failed to update account"
+      );
+    }
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingAccount(null);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -88,8 +119,19 @@ export default function AccountsPage() {
           accounts={accounts}
           onToggleStatus={handleToggleStatus}
           onDelete={handleDeleteAccount}
+          onEdit={handleEditAccount}
         />
       </div>
+
+      {/* Edit Account Modal */}
+      {editingAccount && (
+        <EditAccountModal
+          isOpen={isEditModalOpen}
+          onClose={handleCloseEditModal}
+          onSubmit={handleUpdateAccount}
+          account={editingAccount}
+        />
+      )}
     </div>
   );
 }

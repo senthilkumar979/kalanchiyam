@@ -9,7 +9,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     | "danger"
     | "ghost"
     | "warning"
-    | "tertiary";
+    | "tertiary"
+    | "green";
   size?: "sm" | "md" | "lg";
   isLoading?: boolean;
 }
@@ -32,6 +33,9 @@ const buttonVariants = {
   },
   warning: {
     backgroundColor: themeConfig.warning[600],
+  },
+  green: {
+    backgroundColor: themeConfig.success[600],
   },
 };
 
