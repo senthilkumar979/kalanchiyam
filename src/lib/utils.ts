@@ -56,6 +56,7 @@ export const formatFileType = (mime_type: string) => {
     "image/webp": "webp",
     "image/bmp": "bmp",
     "image/tiff": "tiff",
+    "text/csv": "csv",
   };
   return (
     mimeTypes[mime_type as keyof typeof mimeTypes]?.toUpperCase() ||

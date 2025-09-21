@@ -1,14 +1,23 @@
 import { FileTypeIcon } from "@/components/icons/FileTypeIcon";
 import { Document } from "@/types/database";
-import { Calendar, HardDrive, Tag } from "lucide-react";
+import { Calendar, HardDrive, Tag, User } from "lucide-react";
 import { DownloadActions } from "../../app/documents/components/DownloadActions";
 import { formatDate, formatFileType } from "../../lib/utils";
 
 interface DocumentItemProps {
-  document: Document;
+  document: Document & {
+    owner_account?: {
+      name: string | null;
+      email_id: string;
+    };
+  };
+  onDocumentUpdate?: () => void;
 }
 
-export const DocumentItem = ({ document }: DocumentItemProps) => {
+export const DocumentItem = ({
+  document,
+  onDocumentUpdate,
+}: DocumentItemProps) => {
   const formatFileSize = (bytes: number | null) => {
     if (!bytes) return "Unknown";
     const sizes = ["Bytes", "KB", "MB", "GB"];
@@ -39,7 +48,7 @@ export const DocumentItem = ({ document }: DocumentItemProps) => {
           </div>
 
           {/* Actions */}
-          <DownloadActions doc={document} />
+          <DownloadActions doc={document} onDocumentUpdate={onDocumentUpdate} />
         </div>
 
         {/* Metadata */}
@@ -52,6 +61,10 @@ export const DocumentItem = ({ document }: DocumentItemProps) => {
             <div className="flex items-center space-x-1">
               <Calendar className="w-3 h-3" />
               <span>{formatDate(document.uploaded_at)}</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <User className="w-3 h-3" />
+              <span>{document.owner_account?.name || document.owner}</span>
             </div>
           </div>
           {document.mime_type && (

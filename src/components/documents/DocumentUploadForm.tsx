@@ -4,6 +4,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import TagsInput from "@/components/ui/TagsInput";
+import { useAccounts } from "@/hooks/useAccounts";
 import { Plus, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -12,6 +13,7 @@ interface DocumentFile {
   file: File;
   name: string;
   tags: string[];
+  owner: string;
   isUploading: boolean;
   uploadError?: string;
 }
@@ -27,7 +29,9 @@ export const DocumentUploadForm = ({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [files, setFiles] = useState<DocumentFile[]>([]);
+  const [selectedOwner, setSelectedOwner] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { accounts, isLoading: accountsLoading } = useAccounts();
 
   useEffect(() => {
     return () => {
@@ -50,6 +54,7 @@ export const DocumentUploadForm = ({
         file,
         name: file.name.split(".")[0],
         tags: [],
+        owner: selectedOwner,
         isUploading: false,
       }));
       setFiles((prev) => [...prev, ...newFiles]);
@@ -72,6 +77,10 @@ export const DocumentUploadForm = ({
 
   const uploadAllFiles = async () => {
     if (files.length === 0) return;
+    if (!selectedOwner) {
+      setUploadError("Please select an owner for the documents");
+      return;
+    }
 
     setIsUploading(true);
     setUploadError(null);
@@ -88,6 +97,7 @@ export const DocumentUploadForm = ({
         formData.append("file", fileData.file);
         formData.append("category", fileData.tags.join(", "));
         formData.append("customName", fileData.name);
+        formData.append("owner", selectedOwner);
 
         const result = await uploadDocument(formData);
 
@@ -161,6 +171,31 @@ export const DocumentUploadForm = ({
         </div>
       </div>
 
+      {/* Owner Selection */}
+      <div className="flex-shrink-0 mb-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Owner <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={selectedOwner}
+            onChange={(e) => setSelectedOwner(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            required
+          >
+            <option value="">Select an owner</option>
+            {accounts.map((account) => (
+              <option key={account.email_id} value={account.email_id}>
+                {account.name || account.email_id}
+              </option>
+            ))}
+          </select>
+          {accountsLoading && (
+            <p className="text-xs text-gray-500 mt-1">Loading accounts...</p>
+          )}
+        </div>
+      </div>
+
       {files.length > 0 && (
         <div className="flex-1 flex flex-col min-h-0">
           <div className="flex items-center space-x-2 mb-3 flex-shrink-0">
@@ -171,6 +206,9 @@ export const DocumentUploadForm = ({
             </div>
             <div className="flex-1">
               <label className="text-sm font-medium text-gray-700">Tags</label>
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium text-gray-700">Owner</label>
             </div>
             <div className="w-16"></div>
           </div>
@@ -209,10 +247,24 @@ export const DocumentUploadForm = ({
                         maxTags={3}
                         className="text-sm"
                       />
-                      <span className="text-xs text-gray-500 flex-shrink-0">
-                        {(fileData.file.size / 1024 / 1024).toFixed(1)} MB
-                      </span>
                     </div>
+                    <select
+                      value={fileData.owner}
+                      onChange={(e) =>
+                        updateFile(fileData.id, { owner: e.target.value })
+                      }
+                      className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="">Select owner</option>
+                      {accounts.map((account) => (
+                        <option key={account.email_id} value={account.email_id}>
+                          {account.name || account.email_id}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="text-xs text-gray-500 flex-shrink-0">
+                      {(fileData.file.size / 1024 / 1024).toFixed(1)} MB
+                    </span>
                   </div>
 
                   {fileData.uploadError && (

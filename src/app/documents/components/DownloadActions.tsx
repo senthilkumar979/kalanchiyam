@@ -10,9 +10,13 @@ import { deleteDocument, getDownloadUrl } from "../actions";
 
 interface DownloadActionsProps {
   doc: Document;
+  onDocumentUpdate?: () => void;
 }
 
-export const DownloadActions = ({ doc }: DownloadActionsProps) => {
+export const DownloadActions = ({
+  doc,
+  onDocumentUpdate,
+}: DownloadActionsProps) => {
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,6 +28,10 @@ export const DownloadActions = ({ doc }: DownloadActionsProps) => {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+  };
+
+  const handleDocumentUpdate = () => {
+    onDocumentUpdate?.();
   };
 
   const isDownloading = downloadingIds.has(doc.id);
@@ -117,6 +125,7 @@ export const DownloadActions = ({ doc }: DownloadActionsProps) => {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         document={doc}
+        onDocumentUpdate={handleDocumentUpdate}
       />
 
       {isDownloading || isDeleting ? <LoadingSpinner /> : null}

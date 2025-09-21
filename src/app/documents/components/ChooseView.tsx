@@ -7,14 +7,22 @@ import { getDocuments } from "../actions";
 import { DocumentList } from "./DocumentList";
 import { DocumentsTable } from "./DocumentsTable";
 
-type SortField = "file_name" | "uploaded_at" | "file_size";
+type DocumentWithOwner = Document & {
+  owner_account?: {
+    name: string | null;
+    email_id: string;
+  };
+};
+
+type SortField = "file_name" | "uploaded_at" | "file_size" | "owner";
 type SortDirection = "asc" | "desc";
 
 export const ChooseView = () => {
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<DocumentWithOwner[]>([]);
   const [view, setView] = useState<"table" | "list">("table");
   const [selectedTag, setSelectedTag] = useState<string>("");
   const [selectedType, setSelectedType] = useState<string>("");
+  const [selectedOwner, setSelectedOwner] = useState<string>("");
   const [sortField, setSortField] = useState<SortField>("uploaded_at");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [showFilters, setShowFilters] = useState(false);
@@ -28,14 +36,18 @@ export const ChooseView = () => {
     getDocs();
   }, []);
 
-  // Extract unique tags and file types
-  const { uniqueTags, uniqueTypes } = useMemo(() => {
+  // Extract unique tags, file types, and owners
+  const { uniqueTags, uniqueTypes, uniqueOwners } = useMemo(() => {
     const tags = new Set<string>();
     const types = new Set<string>();
+    const ownersMap = new Map<
+      string,
+      { id: string; name: string; hasAccountName: boolean }
+    >();
 
-    documents.forEach((doc) => {
+    documents.forEach((doc: DocumentWithOwner) => {
       if (doc.category) {
-        doc.category.split(",").forEach((tag) => {
+        doc.category.split(",").forEach((tag: string) => {
           const trimmedTag = tag.trim();
           if (trimmedTag) tags.add(trimmedTag);
         });
@@ -44,27 +56,72 @@ export const ChooseView = () => {
         const type = doc.mime_type.split("/")[0];
         if (type) types.add(type);
       }
+      if (doc.owner) {
+        const ownerName = doc.owner_account?.name || doc.owner;
+        const hasAccountName = !!doc.owner_account?.name;
+
+        // Only add if we don't have this owner yet, or if this one has account name and previous doesn't
+        if (!ownersMap.has(doc.owner)) {
+          ownersMap.set(doc.owner, {
+            id: doc.owner,
+            name: ownerName,
+            hasAccountName,
+          });
+        } else {
+          const existing = ownersMap.get(doc.owner)!;
+          if (hasAccountName && !existing.hasAccountName) {
+            ownersMap.set(doc.owner, {
+              id: doc.owner,
+              name: ownerName,
+              hasAccountName,
+            });
+          }
+        }
+      }
     });
+
+    // Additional debugging to identify duplicates
+    const ownerIdCounts = new Map<string, number>();
+    documents.forEach((doc) => {
+      if (doc.owner) {
+        ownerIdCounts.set(doc.owner, (ownerIdCounts.get(doc.owner) || 0) + 1);
+      }
+    });
+
+    const uniqueOwners = Array.from(ownersMap.values())
+      .map(({ id, name }) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    console.log("Owner ID counts:", Array.from(ownerIdCounts.entries()));
+    console.log("Owners map entries:", Array.from(ownersMap.entries()));
+    console.log("Final unique owners:", uniqueOwners);
+    console.log(
+      "Are there duplicate IDs in final array?",
+      uniqueOwners.map((o) => o.id).length !==
+        new Set(uniqueOwners.map((o) => o.id)).size
+    );
 
     return {
       uniqueTags: Array.from(tags).sort(),
       uniqueTypes: Array.from(types).sort(),
+      uniqueOwners,
     };
   }, [documents]);
 
   // Filter and sort documents
   const filteredAndSortedDocuments = useMemo(() => {
-    const filtered = documents.filter((doc) => {
+    const filtered = documents.filter((doc: DocumentWithOwner) => {
       const matchesTag =
         !selectedTag || (doc.category && doc.category.includes(selectedTag));
       const matchesType =
         !selectedType ||
         (doc.mime_type && doc.mime_type.startsWith(selectedType));
-      return matchesTag && matchesType;
+      const matchesOwner = !selectedOwner || doc.owner === selectedOwner;
+      return matchesTag && matchesType && matchesOwner;
     });
 
     // Sort documents
-    filtered.sort((a, b) => {
+    filtered.sort((a: DocumentWithOwner, b: DocumentWithOwner) => {
       let aValue: string | number;
       let bValue: string | number;
 
@@ -81,6 +138,10 @@ export const ChooseView = () => {
           aValue = a.file_size || 0;
           bValue = b.file_size || 0;
           break;
+        case "owner":
+          aValue = (a.owner_account?.name || a.owner).toLowerCase();
+          bValue = (b.owner_account?.name || b.owner).toLowerCase();
+          break;
         default:
           return 0;
       }
@@ -91,7 +152,14 @@ export const ChooseView = () => {
     });
 
     return filtered;
-  }, [documents, selectedTag, selectedType, sortField, sortDirection]);
+  }, [
+    documents,
+    selectedTag,
+    selectedType,
+    selectedOwner,
+    sortField,
+    sortDirection,
+  ]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -105,6 +173,7 @@ export const ChooseView = () => {
   const clearFilters = () => {
     setSelectedTag("");
     setSelectedType("");
+    setSelectedOwner("");
   };
 
   return (
@@ -130,6 +199,7 @@ export const ChooseView = () => {
                 { field: "file_name" as SortField, label: "Name" },
                 { field: "uploaded_at" as SortField, label: "Date" },
                 { field: "file_size" as SortField, label: "Size" },
+                { field: "owner" as SortField, label: "Owner" },
               ].map(({ field, label }) => (
                 <button
                   key={field}
@@ -183,7 +253,7 @@ export const ChooseView = () => {
       {/* Filter Panel */}
       {showFilters && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Tag Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -192,7 +262,7 @@ export const ChooseView = () => {
               <select
                 value={selectedTag}
                 onChange={(e) => setSelectedTag(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               >
                 <option value="">All Tags</option>
                 {uniqueTags.map((tag) => (
@@ -211,12 +281,31 @@ export const ChooseView = () => {
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               >
                 <option value="">All Types</option>
                 {uniqueTypes.map((type) => (
                   <option key={type} value={type}>
-                    {type}
+                    {type?.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Owner Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Owner
+              </label>
+              <select
+                value={selectedOwner}
+                onChange={(e) => setSelectedOwner(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              >
+                <option value="">All Owners</option>
+                {uniqueOwners.map((owner) => (
+                  <option key={owner.id} value={owner.id}>
+                    {owner.name}
                   </option>
                 ))}
               </select>
@@ -244,10 +333,16 @@ export const ChooseView = () => {
       {/* Document Views */}
       <div>
         {view === "table" && (
-          <DocumentsTable documents={filteredAndSortedDocuments} />
+          <DocumentsTable
+            documents={filteredAndSortedDocuments}
+            onDocumentUpdate={getDocs}
+          />
         )}
         {view === "list" && (
-          <DocumentList documents={filteredAndSortedDocuments} />
+          <DocumentList
+            documents={filteredAndSortedDocuments}
+            onDocumentUpdate={getDocs}
+          />
         )}
       </div>
     </div>

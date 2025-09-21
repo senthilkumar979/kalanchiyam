@@ -82,9 +82,15 @@ CREATE TABLE IF NOT EXISTS documents (
   file_size BIGINT,
   mime_type TEXT,
   category TEXT,
+  owner TEXT NOT NULL,
   uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Add foreign key constraint for owner after table creation
+ALTER TABLE documents 
+ADD CONSTRAINT documents_owner_fkey 
+FOREIGN KEY (owner) REFERENCES accounts(email_id) ON DELETE CASCADE;
 
 -- Enable Row Level Security on documents table
 ALTER TABLE documents ENABLE ROW LEVEL SECURITY;

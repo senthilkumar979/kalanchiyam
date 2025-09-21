@@ -9,7 +9,7 @@ interface DrawerProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
   showCloseButton?: boolean;
   className?: string;
 }
@@ -59,6 +59,10 @@ export const Drawer = ({
         return "w-[32rem]";
       case "xl":
         return "w-[40rem]";
+      case "2xl":
+        return "w-[50rem]";
+      case "3xl":
+        return "w-[60rem]";
       default:
         return "w-96";
     }

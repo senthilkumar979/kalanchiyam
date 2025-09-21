@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import TagsInput from "@/components/ui/TagsInput";
+import { useAccounts } from "@/hooks/useAccounts";
 import { useState } from "react";
 import { updateDocumentDetails } from "../../app/documents/actions";
 
@@ -12,21 +13,24 @@ interface EditDocumentModalProps {
     id: string;
     file_name: string;
     category: string | null;
+    owner: string;
   };
+  onDocumentUpdate?: () => void;
 }
 
 export const EditDocumentModal = ({
   isOpen,
   onClose,
   document,
+  onDocumentUpdate,
 }: EditDocumentModalProps) => {
   const [editFileName, setEditFileName] = useState(document.file_name);
   const [editTags, setEditTags] = useState(
     document.category ? document.category.split(", ") : []
   );
-  console.log(editFileName);
-  console.log(editTags);
+  const [editOwner, setEditOwner] = useState(document.owner);
   const [isSaving, setIsSaving] = useState(false);
+  const { accounts, isLoading: accountsLoading } = useAccounts();
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -35,9 +39,11 @@ export const EditDocumentModal = ({
       const result = await updateDocumentDetails(
         document.id,
         editFileName,
-        categoryAsString
+        categoryAsString,
+        editOwner
       );
       if (result.success) {
+        onDocumentUpdate?.();
         onClose();
       } else {
         alert(result.error || "Update failed");
@@ -53,6 +59,7 @@ export const EditDocumentModal = ({
   const handleClose = () => {
     setEditFileName(document.file_name);
     setEditTags(document.category ? document.category.split(", ") : []);
+    setEditOwner(document.owner);
     onClose();
   };
 
@@ -90,6 +97,28 @@ export const EditDocumentModal = ({
           <p className="text-xs text-gray-500 mt-1">
             Press Enter to add tags. You can add up to 10 tags.
           </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Owner <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={editOwner}
+            onChange={(e) => setEditOwner(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            required
+          >
+            <option value="">Select an owner</option>
+            {accounts.map((account) => (
+              <option key={account.email_id} value={account.email_id}>
+                {account.name || account.email_id}
+              </option>
+            ))}
+          </select>
+          {accountsLoading && (
+            <p className="text-xs text-gray-500 mt-1">Loading accounts...</p>
+          )}
         </div>
 
         <div className="flex justify-end space-x-2 pt-4">

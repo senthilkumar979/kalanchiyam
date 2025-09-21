@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 export interface UploadDocumentFormData {
   file: File;
   category?: string;
+  owner: string;
 }
 
 export interface DocumentUploadResult {
@@ -32,9 +33,14 @@ export async function uploadDocument(
     const file = formData.get("file") as File;
     const category = formData.get("category") as string;
     const customName = formData.get("customName") as string;
+    const owner = formData.get("owner") as string;
 
     if (!file) {
       return { success: false, error: "No file provided" };
+    }
+
+    if (!owner) {
+      return { success: false, error: "Owner is required" };
     }
 
     // Validate file size (10MB limit)
@@ -82,6 +88,7 @@ export async function uploadDocument(
       file_size: file.size,
       mime_type: file.type,
       category: category || null,
+      owner: owner,
     };
 
     console.log("insertData", insertData);
@@ -119,17 +126,48 @@ export async function getDocuments(): Promise<Document[]> {
       return [];
     }
 
-    const { data: documents, error } = await supabase
+    // First, get all documents
+    const { data: documents, error: documentsError } = await supabase
       .from("documents")
       .select("*")
       .order("uploaded_at", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching documents:", error);
+    if (documentsError) {
+      console.error("Error fetching documents:", documentsError);
       return [];
     }
 
-    return documents || [];
+    if (!documents || documents.length === 0) {
+      return [];
+    }
+
+    // Get all unique owner IDs
+    const ownerIds = [...new Set(documents.map((doc) => doc.owner))];
+
+    // Fetch owner account information
+    const { data: accounts, error: accountsError } = await supabase
+      .from("accounts")
+      .select("email_id, name")
+      .in("email_id", ownerIds);
+
+    if (accountsError) {
+      console.error("Error fetching accounts:", accountsError);
+      // Return documents without owner info if accounts fetch fails
+      return documents;
+    }
+
+    // Create a map of owner ID to account info
+    const accountsMap = new Map(
+      accounts?.map((account) => [account.email_id, account]) || []
+    );
+
+    // Merge documents with owner account information
+    const documentsWithOwners = documents.map((doc) => ({
+      ...doc,
+      owner_account: accountsMap.get(doc.owner) || null,
+    }));
+
+    return documentsWithOwners;
   } catch (error) {
     console.error("Error fetching documents:", error);
     return [];
@@ -272,13 +310,15 @@ export async function updateDocumentCategory(
 export async function updateDocumentDetails(
   documentId: string,
   fileName: string,
-  category: string
+  category: string,
+  owner?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     console.log("updateDocumentDetails called with:", {
       documentId,
       fileName,
       category,
+      owner,
     });
     const supabase = await createClient();
     const {
@@ -310,14 +350,25 @@ export async function updateDocumentDetails(
       documentId,
       fileName,
       category,
+      owner,
     });
+
+    const updateData: {
+      file_name: string;
+      category: string;
+      owner?: string;
+    } = {
+      file_name: fileName,
+      category,
+    };
+
+    if (owner) {
+      updateData.owner = owner;
+    }
 
     const { data, error } = await supabase
       .from("documents")
-      .update({
-        file_name: fileName,
-        category,
-      })
+      .update(updateData)
       .eq("id", documentId)
       .maybeSingle();
 

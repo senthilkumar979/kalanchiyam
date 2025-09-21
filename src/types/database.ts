@@ -59,6 +59,7 @@ export interface Database {
           file_size: number | null;
           mime_type: string | null;
           category: string | null;
+          owner: string;
           uploaded_at: string;
           updated_at: string;
         };
@@ -70,6 +71,7 @@ export interface Database {
           file_size?: number | null;
           mime_type?: string | null;
           category?: string | null;
+          owner: string;
           uploaded_at?: string;
           updated_at?: string;
         };
@@ -81,6 +83,7 @@ export interface Database {
           file_size?: number | null;
           mime_type?: string | null;
           category?: string | null;
+          owner?: string;
           uploaded_at?: string;
           updated_at?: string;
         };

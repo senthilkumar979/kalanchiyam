@@ -9,6 +9,7 @@ import { DownloadActions } from "./DownloadActions";
 
 interface DocumentsTableProps {
   documents: Document[];
+  onDocumentUpdate?: () => void;
 }
 
 type TableData = {
@@ -17,20 +18,34 @@ type TableData = {
   category: string | null;
   mimeType: string | null;
   uploadedAt: string;
+  owner: string;
+  owner_account?: {
+    name: string | null;
+    email_id: string;
+  };
 };
 
 export const DocumentsTable: React.FC<DocumentsTableProps> = ({
   documents,
+  onDocumentUpdate,
 }) => {
   const data = React.useMemo<TableData[]>(
     () =>
-      documents.map((doc) => ({
-        id: doc.id,
-        file_name: doc.file_name,
-        category: doc.category,
-        mimeType: doc.mime_type,
-        uploadedAt: formatDate(doc.uploaded_at),
-      })),
+      documents.map(
+        (
+          doc: Document & {
+            owner_account?: { name: string | null; email_id: string };
+          }
+        ) => ({
+          id: doc.id,
+          file_name: doc.file_name,
+          category: doc.category,
+          mimeType: doc.mime_type,
+          uploadedAt: formatDate(doc.uploaded_at),
+          owner: doc.owner,
+          owner_account: doc.owner_account,
+        })
+      ),
     [documents]
   );
 
@@ -49,7 +64,10 @@ export const DocumentsTable: React.FC<DocumentsTableProps> = ({
           <div className="flex-1 min-w-0">
             <span className="text-sm font-semibold text-gray-900 truncate flex items-center justify-between gap-2">
               {row.original.file_name}
-              <DownloadActions doc={row.original as unknown as Document} />
+              <DownloadActions
+                doc={row.original as unknown as Document}
+                onDocumentUpdate={onDocumentUpdate}
+              />
             </span>
           </div>
         ),
@@ -72,6 +90,15 @@ export const DocumentsTable: React.FC<DocumentsTableProps> = ({
               <span className="text-xs text-gray-400 italic">No tags</span>
             )}
           </div>
+        ),
+      },
+      {
+        Header: "Owner",
+        accessor: "owner",
+        Cell: ({ row }) => (
+          <span className="text-sm text-gray-900">
+            {row.original.owner_account?.name || row.original.owner}
+          </span>
         ),
       },
       {
