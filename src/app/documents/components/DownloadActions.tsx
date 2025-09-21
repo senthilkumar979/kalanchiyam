@@ -20,7 +20,6 @@ export const DownloadActions = ({
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [isModalOpen, setIsModalOpen] = useState(false);
-  console.log(doc);
 
   const handleOpenModal = () => {
     setIsModalOpen(true);
@@ -54,7 +53,6 @@ export const DownloadActions = ({
         alert("Failed to generate download link");
       }
     } catch (error) {
-      console.error("Download error:", error);
       alert("Download failed");
     } finally {
       setDownloadingIds((prev) => {
@@ -79,7 +77,6 @@ export const DownloadActions = ({
         alert(result.error || "Delete failed");
       }
     } catch (error) {
-      console.error("Delete error:", error);
       alert("Delete failed");
     } finally {
       setDeletingIds((prev) => {

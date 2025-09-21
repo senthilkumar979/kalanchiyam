@@ -1,11 +1,12 @@
 "use client";
 
-import { uploadDocument } from "@/app/documents/actions";
+import { getDocuments, uploadDocument } from "@/app/documents/actions";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
 import { useAccounts } from "@/hooks/useAccounts";
-import { Lock, Trash2, Upload, User } from "lucide-react";
+import { Document } from "@/types/database";
+import { Download, Trash2, Upload, User } from "lucide-react";
 import React, { useState } from "react";
 import { PredefinedDocIcon } from "../../../components/icons/FileIcon";
 
@@ -14,6 +15,12 @@ interface DocFile {
   name: string;
   file: File | null;
   owner: string;
+  existingDocument?: Document & {
+    owner_account?: {
+      name: string | null;
+      email_id: string;
+    };
+  };
 }
 
 interface PredefinedDocsProps {
@@ -28,8 +35,30 @@ export const PredefinedDocs = ({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [existingDocuments, setExistingDocuments] = useState<Document[]>([]);
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
   const { accounts, isLoading: accountsLoading } = useAccounts();
 
+  // Fetch existing identity-docs documents
+  const fetchExistingDocuments = async () => {
+    console.log("fetching existing documents");
+    setIsLoadingDocuments(true);
+    try {
+      const documents = await getDocuments();
+      console.log("documents", documents);
+      const identityDocs = documents.filter(
+        (doc) => doc.category === "identity-docs"
+      );
+      console.log("identityDocs", identityDocs);
+      setExistingDocuments(identityDocs);
+    } catch (error) {
+      console.error("Error fetching existing documents:", error);
+    } finally {
+      setIsLoadingDocuments(false);
+    }
+  };
+
+  // Static identity documents list - always show all types
   const docsList = React.useMemo(
     () => [
       "Passport",
@@ -51,25 +80,59 @@ export const PredefinedDocs = ({
 
   const [docFiles, setDocFiles] = useState<Record<string, DocFile[]>>({});
 
-  // Initialize doc files for each account when accounts are loaded
+  // Fetch existing documents when component mounts
   React.useEffect(() => {
-    if (accounts.length > 0 && Object.keys(docFiles).length === 0) {
-      const initialDocFiles: Record<string, DocFile[]> = {};
-      accounts.forEach((account) => {
-        initialDocFiles[account.email_id] = docsList.map((doc) => ({
-          id: doc.toLowerCase().replace(/\s+/g, "-"),
-          name: doc,
-          file: null,
-          owner: account.email_id,
-        }));
+    fetchExistingDocuments();
+  }, []);
+
+  // Initialize doc files for each account when accounts and existing documents are loaded
+  React.useEffect(() => {
+    if (accounts.length > 0 && existingDocuments.length >= 0) {
+      console.log("Initializing doc files with:", {
+        accounts: accounts.map((a) => a.email_id),
+        existingDocuments: existingDocuments.map((d) => ({
+          owner: d.owner,
+          file_name: d.file_name,
+          category: d.category,
+        })),
+        docsList,
       });
+
+      const initialDocFiles: Record<string, DocFile[]> = {};
+
+      accounts.forEach((account) => {
+        initialDocFiles[account.email_id] = docsList.map((docName) => {
+          // Find existing document for this account and document name
+          // The file_name in DB includes extension, so we need to check if it starts with the docName
+          const existingDoc = existingDocuments.find(
+            (doc) =>
+              doc.owner === account.email_id &&
+              (doc.file_name === docName ||
+                doc.file_name.startsWith(`${docName}.`))
+          );
+
+          console.log(
+            `Looking for ${docName} for account ${account.email_id}:`,
+            existingDoc
+          );
+
+          return {
+            id: docName.toLowerCase().replace(/\s+/g, "-"),
+            name: docName,
+            file: null,
+            owner: account.email_id,
+            existingDocument: existingDoc,
+          };
+        });
+      });
+
       setDocFiles(initialDocFiles);
       // Set first account as selected by default
       if (!selectedAccount) {
         setSelectedAccount(accounts[0].email_id);
       }
     }
-  }, [accounts, docFiles, selectedAccount, docsList]);
+  }, [accounts, existingDocuments, selectedAccount, docsList]);
 
   const handleFileChange = (docId: string, file: File | null) => {
     if (!selectedAccount) return;
@@ -83,16 +146,70 @@ export const PredefinedDocs = ({
     }));
   };
 
-  const handleDelete = (docId: string) => {
+  const handleDelete = async (docId: string) => {
     if (!selectedAccount) return;
 
-    setDocFiles((prev) => ({
-      ...prev,
-      [selectedAccount]:
-        prev[selectedAccount]?.map((doc) =>
-          doc.id === docId ? { ...doc, file: null } : doc
-        ) || [],
-    }));
+    const currentAccountDocs = docFiles[selectedAccount] || [];
+    const docToDelete = currentAccountDocs.find((doc) => doc.id === docId);
+
+    if (!docToDelete) return;
+
+    // If it's an existing document, we need to delete it from the database
+    if (docToDelete.existingDocument) {
+      try {
+        const response = await fetch("/api/delete-document", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: docToDelete.existingDocument.id }),
+        });
+
+        if (response.ok) {
+          // Refresh existing documents to update the UI
+          await fetchExistingDocuments();
+          // Call the success callback to refresh the documents list
+          onUploadSuccess?.();
+        } else {
+          console.error("Failed to delete document from database");
+        }
+      } catch (error) {
+        console.error("Error deleting document:", error);
+      }
+    } else {
+      // If it's just a new file selection, just clear it
+      setDocFiles((prev) => ({
+        ...prev,
+        [selectedAccount]:
+          prev[selectedAccount]?.map((doc) =>
+            doc.id === docId ? { ...doc, file: null } : doc
+          ) || [],
+      }));
+    }
+  };
+
+  const handleDownload = async (existingDoc: Document) => {
+    try {
+      // Create a download link for the file
+      const response = await fetch(
+        `/api/download-document?id=${existingDoc.id}`
+      );
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = existingDoc.file_name;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        console.error("Download failed");
+      }
+    } catch (error) {
+      console.error("Error downloading file:", error);
+    }
   };
 
   const handleUploadAll = async () => {
@@ -119,8 +236,8 @@ export const PredefinedDocs = ({
       try {
         const formData = new FormData();
         formData.append("file", doc.file);
-        formData.append("category", "identity-docs"); // Fixed category for predefined docs
-        formData.append("customName", doc.name); // Use predefined doc name as custom name
+        formData.append("category", "identity-docs"); // Fixed category for identity docs
+        formData.append("customName", doc.name); // Use identity doc name as custom name
         formData.append("owner", selectedAccount);
 
         const result = await uploadDocument(formData);
@@ -150,6 +267,8 @@ export const PredefinedDocs = ({
             file: null,
           })) || [],
       }));
+      // Refresh existing documents to update the UI
+      await fetchExistingDocuments();
       // Call the success callback to refresh the documents list
       onUploadSuccess?.();
       // Clear success message after 3 seconds
@@ -188,12 +307,6 @@ export const PredefinedDocs = ({
         {/* Only show helper text and tabs if there are multiple accounts */}
         {accounts.length > 1 && (
           <>
-            <h6 className="text-sm text-gray-800 mb-4">
-              Select an account and upload predefined documents for that
-              account. Document names and categories are fixed - only the file
-              can be changed.
-            </h6>
-
             {/* Account Tabs */}
             {accountsLoading ? (
               <div className="flex justify-center py-8">
@@ -246,13 +359,22 @@ export const PredefinedDocs = ({
           </div>
         )}
 
+        {/* Loading State */}
+        {isLoadingDocuments && (
+          <div className="flex justify-center py-8">
+            <div className="text-sm text-gray-500">
+              Loading identity documents...
+            </div>
+          </div>
+        )}
+
         {/* Documents List for Selected Account */}
-        {selectedAccount && (
+        {selectedAccount && !isLoadingDocuments && (
           <div className="space-y-4 mb-4">
             {/* Only show account-specific helper text if there are multiple accounts */}
             {accounts.length > 1 && (
               <h6 className="text-sm text-gray-800 mb-4">
-                You see the list of predefined documents for{" "}
+                You see the list of identity documents for{" "}
                 <strong>
                   {accounts.find((acc) => acc.email_id === selectedAccount)
                     ?.name || selectedAccount}
@@ -260,65 +382,97 @@ export const PredefinedDocs = ({
                 .
               </h6>
             )}
-            {currentAccountDocs.map((doc) => (
-              <div
-                key={doc.id}
-                className={`relative flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors ${
-                  doc.file ? "border-green-300 bg-green-50" : "border-gray-200"
-                }`}
-              >
-                {/* Document Icon */}
-                <div className="flex-shrink-0">
-                  <PredefinedDocIcon fileName={doc.name} />
-                </div>
+            {currentAccountDocs.map((doc) => {
+              const hasExistingDoc = !!doc.existingDocument;
+              const hasNewFile = !!doc.file;
 
-                {/* Document Name */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {doc.name}
-                    </p>
-                  </div>
-                  {doc.file && (
-                    <p className="text-xs text-green-600 truncate">
-                      Selected: {doc.file.name}
-                    </p>
-                  )}
-                </div>
-
-                {/* File Upload Input - Only show when no file is selected */}
-                {!doc.file && (
-                  <div className="flex-1">
-                    <Input
-                      type="file"
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] || null;
-                        handleFileChange(doc.id, file);
-                      }}
-                      className="text-sm"
-                    />
-                  </div>
-                )}
-
-                {/* Spacer when file is selected to maintain layout */}
-                {doc.file && <div className="flex-1" />}
-
-                {/* Delete Button */}
-                {doc.file && (
+              return (
+                <div
+                  key={doc.id}
+                  className={`relative flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors ${
+                    hasNewFile
+                      ? "border-green-300 bg-green-50"
+                      : hasExistingDoc
+                      ? "border-blue-300 bg-blue-50"
+                      : "border-gray-200"
+                  }`}
+                >
+                  {/* Document Icon */}
                   <div className="flex-shrink-0">
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      onClick={() => handleDelete(doc.id)}
-                      className="flex items-center gap-2"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <PredefinedDocIcon fileName={doc.name} />
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {/* Document Name */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {doc.name}
+                      </p>
+                      {hasExistingDoc && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                          Already Uploaded
+                        </span>
+                      )}
+                    </div>
+                    {hasNewFile && (
+                      <p className="text-xs text-green-600 truncate">
+                        New file: {doc.file?.name}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* File Upload Input - Only show when no file exists */}
+                  {!hasExistingDoc && !hasNewFile && (
+                    <div className="flex-1">
+                      <Input
+                        type="file"
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          handleFileChange(doc.id, file);
+                        }}
+                        className="text-sm"
+                      />
+                    </div>
+                  )}
+
+                  {/* Spacer when file exists to maintain layout */}
+                  {(hasExistingDoc || hasNewFile) && <div className="flex-1" />}
+
+                  {/* Action Buttons */}
+                  <div className="flex-shrink-0 flex items-center gap-2">
+                    {/* Download Button - Only show for existing documents */}
+                    {hasExistingDoc && !hasNewFile && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleDownload(doc.existingDocument!)}
+                        className="flex items-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                    )}
+
+                    {/* Delete Button - Show for both existing and new files */}
+                    {(hasNewFile || hasExistingDoc) && (
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => handleDelete(doc.id)}
+                        className="flex items-center gap-2"
+                        title={
+                          hasExistingDoc
+                            ? "Delete document"
+                            : "Remove selected file"
+                        }
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 

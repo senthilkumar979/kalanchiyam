@@ -106,15 +106,6 @@ export const ChooseView = forwardRef<ChooseViewRef>((props, ref) => {
       .map(({ id, name }) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    console.log("Owner ID counts:", Array.from(ownerIdCounts.entries()));
-    console.log("Owners map entries:", Array.from(ownersMap.entries()));
-    console.log("Final unique owners:", uniqueOwners);
-    console.log(
-      "Are there duplicate IDs in final array?",
-      uniqueOwners.map((o) => o.id).length !==
-        new Set(uniqueOwners.map((o) => o.id)).size
-    );
-
     return {
       uniqueTags: Array.from(tags).sort(),
       uniqueTypes: Array.from(types).sort(),
