@@ -131,7 +131,7 @@ export const AccountsTable = ({
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                   <div className="flex items-center gap-2">
-                    <Calendar size={14} /> Created
+                    <Calendar size={14} /> Updated
                   </div>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ">
@@ -173,7 +173,7 @@ export const AccountsTable = ({
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(account.created_at).toLocaleDateString()}
+                    {new Date(account.updated_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                     <Button

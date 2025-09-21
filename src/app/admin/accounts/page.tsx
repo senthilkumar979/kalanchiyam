@@ -1,13 +1,15 @@
 "use client";
 
-import { AccountForm } from "@/components/forms/AccountForm";
+import { AddAccountModal } from "@/components/modals/AddAccountModal";
 import { EditAccountModal } from "@/components/modals/EditAccountModal";
 import { useToastContext } from "@/components/providers/ToastProvider";
 import { AccountsTable } from "@/components/tables/AccountsTable";
+import { Button } from "@/components/ui/Button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAccounts } from "@/hooks/useAccounts";
 import { Account } from "@/types/database";
 import { EditAccountFormData } from "@/types/forms";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 
 export default function AccountsPage() {
@@ -23,6 +25,7 @@ export default function AccountsPage() {
   const { success, error: showError } = useToastContext();
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
@@ -53,10 +56,22 @@ export default function AccountsPage() {
     }
   };
 
-  const handleAddAccount = async (data: { email_id: string }) => {
+  const handleAddAccount = async (data: EditAccountFormData) => {
     try {
+      // Create account with basic info first
       await addAccount(data.email_id);
+
+      // If there's additional info (name, avatar), update the account
+      if (data.name || data.avatar_url) {
+        await updateAccount({
+          email_id: data.email_id,
+          name: data.name || "",
+          avatar_url: data.avatar_url || "",
+        });
+      }
+
       success("Account Added", "Account added successfully!");
+      setIsAddModalOpen(false);
     } catch (error) {
       showError(
         "Add Account Failed",
@@ -89,6 +104,10 @@ export default function AccountsPage() {
     setEditingAccount(null);
   };
 
+  const handleCloseAddModal = () => {
+    setIsAddModalOpen(false);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -109,12 +128,17 @@ export default function AccountsPage() {
               Add or remove allowed email addresses and invite new users.
             </p>
           </div>
+          <Button
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add Account
+          </Button>
         </div>
       </div>
 
       <div className="space-y-6">
-        <AccountForm onSubmit={handleAddAccount} />
-
         <AccountsTable
           accounts={accounts}
           onToggleStatus={handleToggleStatus}
@@ -122,6 +146,14 @@ export default function AccountsPage() {
           onEdit={handleEditAccount}
         />
       </div>
+
+      {/* Add Account Modal */}
+      <AddAccountModal
+        isOpen={isAddModalOpen}
+        onClose={handleCloseAddModal}
+        onSubmit={handleAddAccount}
+        isLoading={isLoading}
+      />
 
       {/* Edit Account Modal */}
       {editingAccount && (
