@@ -2,7 +2,13 @@
 
 import { Document } from "@/types/database";
 import { Filter, ListIcon, SortAsc, SortDesc, TableIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from "react";
 import { getDocuments } from "../actions";
 import { DocumentList } from "./DocumentList";
 import { DocumentsTable } from "./DocumentsTable";
@@ -17,7 +23,11 @@ type DocumentWithOwner = Document & {
 type SortField = "file_name" | "uploaded_at" | "file_size" | "owner";
 type SortDirection = "asc" | "desc";
 
-export const ChooseView = () => {
+export interface ChooseViewRef {
+  refreshDocuments: () => void;
+}
+
+export const ChooseView = forwardRef<ChooseViewRef>((props, ref) => {
   const [documents, setDocuments] = useState<DocumentWithOwner[]>([]);
   const [view, setView] = useState<"table" | "list">("table");
   const [selectedTag, setSelectedTag] = useState<string>("");
@@ -31,6 +41,10 @@ export const ChooseView = () => {
     const documents = await getDocuments();
     setDocuments(documents);
   };
+
+  useImperativeHandle(ref, () => ({
+    refreshDocuments: getDocs,
+  }));
 
   useEffect(() => {
     getDocs();
@@ -347,4 +361,6 @@ export const ChooseView = () => {
       </div>
     </div>
   );
-};
+});
+
+ChooseView.displayName = "ChooseView";

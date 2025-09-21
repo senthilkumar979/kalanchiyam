@@ -1,10 +1,11 @@
 "use client";
 
+import { uploadDocument } from "@/app/documents/actions";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
 import { useAccounts } from "@/hooks/useAccounts";
-import { Trash2, Upload, User } from "lucide-react";
+import { Lock, Trash2, Upload, User } from "lucide-react";
 import React, { useState } from "react";
 import { PredefinedDocIcon } from "../../../components/icons/FileIcon";
 
@@ -15,9 +16,18 @@ interface DocFile {
   owner: string;
 }
 
-export const PredefinedDocs = () => {
+interface PredefinedDocsProps {
+  onUploadSuccess?: () => void;
+}
+
+export const PredefinedDocs = ({
+  onUploadSuccess,
+}: PredefinedDocsProps = {}) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
   const { accounts, isLoading: accountsLoading } = useAccounts();
 
   const docsList = React.useMemo(
@@ -85,7 +95,7 @@ export const PredefinedDocs = () => {
     }));
   };
 
-  const handleUploadAll = () => {
+  const handleUploadAll = async () => {
     if (!selectedAccount) return;
 
     const currentAccountDocs = docFiles[selectedAccount] || [];
@@ -96,13 +106,61 @@ export const PredefinedDocs = () => {
       return;
     }
 
-    // Handle bulk upload logic here
-    // You can implement the actual upload logic based on your requirements
-    filesToUpload.forEach((doc) => {
-      if (doc.file) {
-        console.log(`Uploading ${doc.name} for ${selectedAccount}:`, doc.file);
+    setIsUploading(true);
+    setUploadError(null);
+    setUploadSuccess(false);
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const doc of filesToUpload) {
+      if (!doc.file) continue;
+
+      try {
+        const formData = new FormData();
+        formData.append("file", doc.file);
+        formData.append("category", "identity-docs"); // Fixed category for predefined docs
+        formData.append("customName", doc.name); // Use predefined doc name as custom name
+        formData.append("owner", selectedAccount);
+
+        const result = await uploadDocument(formData);
+
+        if (result.success) {
+          successCount++;
+        } else {
+          errorCount++;
+          console.error(`Failed to upload ${doc.name}:`, result.error);
+        }
+      } catch (error) {
+        errorCount++;
+        console.error(`Error uploading ${doc.name}:`, error);
       }
-    });
+    }
+
+    setIsUploading(false);
+
+    if (successCount > 0) {
+      setUploadSuccess(true);
+      // Clear the selected files after successful upload
+      setDocFiles((prev) => ({
+        ...prev,
+        [selectedAccount]:
+          prev[selectedAccount]?.map((doc) => ({
+            ...doc,
+            file: null,
+          })) || [],
+      }));
+      // Call the success callback to refresh the documents list
+      onUploadSuccess?.();
+      // Clear success message after 3 seconds
+      setTimeout(() => setUploadSuccess(false), 3000);
+    }
+
+    if (errorCount > 0) {
+      setUploadError(`${errorCount} file(s) failed to upload`);
+      // Clear error message after 5 seconds
+      setTimeout(() => setUploadError(null), 5000);
+    }
   };
 
   const currentAccountDocs = selectedAccount
@@ -132,7 +190,8 @@ export const PredefinedDocs = () => {
           <>
             <h6 className="text-sm text-gray-800 mb-4">
               Select an account and upload predefined documents for that
-              account.
+              account. Document names and categories are fixed - only the file
+              can be changed.
             </h6>
 
             {/* Account Tabs */}
@@ -173,6 +232,20 @@ export const PredefinedDocs = () => {
           </>
         )}
 
+        {/* Upload Status Messages */}
+        {uploadSuccess && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+            <p className="text-sm text-green-800">
+              Documents uploaded successfully!
+            </p>
+          </div>
+        )}
+        {uploadError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-800">{uploadError}</p>
+          </div>
+        )}
+
         {/* Documents List for Selected Account */}
         {selectedAccount && (
           <div className="space-y-4 mb-4">
@@ -190,7 +263,7 @@ export const PredefinedDocs = () => {
             {currentAccountDocs.map((doc) => (
               <div
                 key={doc.id}
-                className={`flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors ${
+                className={`relative flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors ${
                   doc.file ? "border-green-300 bg-green-50" : "border-gray-200"
                 }`}
               >
@@ -201,9 +274,11 @@ export const PredefinedDocs = () => {
 
                 {/* Document Name */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {doc.name}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {doc.name}
+                    </p>
+                  </div>
                   {doc.file && (
                     <p className="text-xs text-green-600 truncate">
                       Selected: {doc.file.name}
@@ -270,10 +345,15 @@ export const PredefinedDocs = () => {
                 onClick={handleUploadAll}
                 className="flex items-center gap-2"
                 size="md"
+                disabled={isUploading}
+                isLoading={isUploading}
               >
                 <Upload className="w-4 h-4" />
-                Upload All (
-                {currentAccountDocs.filter((doc) => doc.file).length})
+                {isUploading
+                  ? "Uploading..."
+                  : `Upload All (${
+                      currentAccountDocs.filter((doc) => doc.file).length
+                    })`}
               </Button>
             </div>
           </div>
