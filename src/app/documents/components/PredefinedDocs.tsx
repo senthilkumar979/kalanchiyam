@@ -8,7 +8,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { Document } from "@/types/database";
 import { Download, Trash2, Upload, User } from "lucide-react";
 import React, { useState } from "react";
-import { PredefinedDocIcon } from "../../../components/icons/FileIcon";
+import { PredefinedDocIcon } from "../../../components/icons/PredefinedDocIcon";
 
 interface DocFile {
   id: string;
@@ -294,13 +294,12 @@ export const PredefinedDocs = ({
         className="flex items-center gap-2"
         variant="green"
       >
-        <Upload className="w-5 h-5" />
-        Upload Predefined Docs
+        Identity Docs
       </Button>
       <Drawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        title="Predefined Documents"
+        title="Identity Documents"
         size="2xl"
         className="pb-0"
       >

@@ -1,14 +1,10 @@
-export const PassportIcon = ({
-  className = "w-5 h-5",
-}: {
-  className?: string;
-}) => (
+export const PassportIcon = () => (
   <svg
     viewBox="0 0 512 512"
     width="32"
     height="32"
     xmlns="http://www.w3.org/2000/svg"
-    fill="#000000"
+    fill="#56ACE0"
   >
     <g>
       <path d="M270.465,279.817c4.674-3.824,9.136-9.612,12.926-16.946c1.258-2.431,2.414-5.116,3.519-7.887h-26.634v29.032 c1.334-0.069,2.651-0.171,3.968-0.29C266.327,282.775,268.408,281.5,270.465,279.817z" />

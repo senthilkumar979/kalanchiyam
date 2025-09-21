@@ -1,8 +1,4 @@
-export const DrivingLicenseIcon = ({
-  className = "w-5 h-5",
-}: {
-  className?: string;
-}) => (
+export const DrivingLicenseIcon = () => (
   <svg
     width="32"
     height="32"
